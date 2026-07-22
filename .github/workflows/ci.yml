@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cc: gcc-12
+            cxx: g++-12
+          - os: ubuntu-latest
+            compiler: clang
+            cc: clang-15
+            cxx: clang++-15
+          - os: windows-latest
+            compiler: msvc
+          - os: macos-latest
+            compiler: clang
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / ${{ matrix.compiler }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSSL (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y libssl-dev
+
+      - name: Install OpenSSL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install openssl@3
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DEAHCM_BUILD_TESTS=ON \
+            -DEAHCM_BUILD_EXAMPLES=ON \
+            -DEAHCM_WARNINGS_AS_ERRORS=ON
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build -DEAHCM_BUILD_TESTS=ON -DEAHCM_BUILD_EXAMPLES=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -C Release
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    name: Sanitizers (ASan + UBSan)
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get install -y libssl-dev
+
+      - name: Configure
+        env:
+          CC: gcc-12
+          CXX: g++-12
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DEAHCM_BUILD_TESTS=ON \
+            -DEAHCM_ENABLE_SANITIZERS=ON \
+            -DEAHCM_WARNINGS_AS_ERRORS=OFF
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test under sanitizers
+        run: ctest --test-dir build --output-on-failure

@@ -1,0 +1,272 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-26T15:43:15.699746+00:00",
+  "generator": "generate_reference_vectors.py",
+  "description": "Bit-exact reference vectors for Python <-> C++ cross-validation. A C++ implementation is correct iff its output matches these values exactly.",
+  "constants": {
+    "MASK32": 4294967295,
+    "PARAM_FLOOR": 3758096384,
+    "DRIFT_MASK": 535822336,
+    "DRIFT_INTERVAL": 64,
+    "WARMUP_STEPS": 256,
+    "EPSILON_CONST": 608135816,
+    "PHI_FRAC": 2654435769
+  },
+  "vectors": [
+    {
+      "id": "KS-001",
+      "description": "Canonical: well-spread key and nonce",
+      "key_hex": "454148434d2d746573742d6b65792d76312d63616e6f6e6963616c2d30303031",
+      "nonce_hex": "000102030405060708090a0b",
+      "pre_warmup": {
+        "init_x": 2740518877,
+        "init_y": 1068014311,
+        "init_z": 285855330,
+        "init_w": 2643455225,
+        "init_alpha": 4006712981,
+        "init_gamma": 4100319862,
+        "init_mu": 3944351923,
+        "init_sigma": 3762544092
+      },
+      "pre_warmup_hex": {
+        "init_x": "0xA358FFDD",
+        "init_y": "0x3FA89AE7",
+        "init_z": "0x1109CE62",
+        "init_w": "0x9D8FECF9",
+        "init_alpha": "0xEED19695",
+        "init_gamma": "0xF465EA76",
+        "init_mu": "0xEB1A08B3",
+        "init_sigma": "0xE043DDDC"
+      },
+      "post_warmup": {
+        "x": 2970720158,
+        "y": 3092857037,
+        "z": 2589378523,
+        "w": 932018884,
+        "alpha": 4024235718,
+        "gamma": 3927292406,
+        "mu": 3926493294,
+        "sigma": 3995271356,
+        "counter": 256
+      },
+      "post_warmup_hex": {
+        "x": "0xB111979E",
+        "y": "0xB85940CD",
+        "z": "0x9A56C7DB",
+        "w": "0x378D7AC4",
+        "alpha": "0xEFDCF6C6",
+        "gamma": "0xEA15B9F6",
+        "mu": "0xEA09886E",
+        "sigma": "0xEE2300BC",
+        "counter": "0x00000100"
+      },
+      "post_warmup_extract": 839331032220568192,
+      "post_warmup_extract_hex": "0x0BA5E72078780A80",
+      "warmup_steps": 256
+    },
+    {
+      "id": "KS-002",
+      "description": "All-zero key (HKDF must still diverge)",
+      "key_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "nonce_hex": "000000000000000000000000",
+      "pre_warmup": {
+        "init_x": 211893043,
+        "init_y": 1936317863,
+        "init_z": 678787295,
+        "init_w": 516119902,
+        "init_alpha": 4084707243,
+        "init_gamma": 4237047553,
+        "init_mu": 4124208064,
+        "init_sigma": 4255105210
+      },
+      "pre_warmup_hex": {
+        "init_x": "0x0CA13B33",
+        "init_y": "0x7369DDA7",
+        "init_z": "0x287578DF",
+        "init_w": "0x1EC35D5E",
+        "init_alpha": "0xF377AFAB",
+        "init_gamma": "0xFC8C3701",
+        "init_mu": "0xF5D26BC0",
+        "init_sigma": "0xFD9FC0BA"
+      },
+      "post_warmup": {
+        "x": 1350632509,
+        "y": 3617070348,
+        "z": 2362629524,
+        "w": 1347212180,
+        "alpha": 4223346555,
+        "gamma": 4052019041,
+        "mu": 4287761324,
+        "sigma": 4027558962,
+        "counter": 256
+      },
+      "post_warmup_hex": {
+        "x": "0x5081043D",
+        "y": "0xD7981D0C",
+        "z": "0x8CD2DD94",
+        "w": "0x504CD394",
+        "alpha": "0xFBBB277B",
+        "gamma": "0xF184E761",
+        "mu": "0xFF920BAC",
+        "sigma": "0xF00FAC32",
+        "counter": "0x00000100"
+      },
+      "post_warmup_extract": 13861857865831653409,
+      "post_warmup_extract_hex": "0xC05F364923D9A021",
+      "warmup_steps": 256
+    },
+    {
+      "id": "KS-003",
+      "description": "All-ones key and nonce",
+      "key_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "nonce_hex": "ffffffffffffffffffffffff",
+      "pre_warmup": {
+        "init_x": 4287588827,
+        "init_y": 3887260421,
+        "init_z": 678185862,
+        "init_w": 3748558440,
+        "init_alpha": 3938063697,
+        "init_gamma": 4210608779,
+        "init_mu": 3902718700,
+        "init_sigma": 4237131511
+      },
+      "pre_warmup_hex": {
+        "init_x": "0xFF8F69DB",
+        "init_y": "0xE7B2E305",
+        "init_z": "0x286C4B86",
+        "init_w": "0xDF6E7668",
+        "init_alpha": "0xEABA1551",
+        "init_gamma": "0xFAF8CA8B",
+        "init_mu": "0xE89EC2EC",
+        "init_sigma": "0xFC8D7EF7"
+      },
+      "post_warmup": {
+        "x": 37720200,
+        "y": 2534690135,
+        "z": 3469874615,
+        "w": 966865837,
+        "alpha": 3962908691,
+        "gamma": 3859646541,
+        "mu": 3999007859,
+        "sigma": 4284211666,
+        "counter": 256
+      },
+      "post_warmup_hex": {
+        "x": "0x023F9088",
+        "y": "0x97144D57",
+        "z": "0xCED215B7",
+        "w": "0x39A133AD",
+        "alpha": "0xEC353013",
+        "gamma": "0xE60D884D",
+        "mu": "0xEE5C0473",
+        "sigma": "0xFF5BE1D2",
+        "counter": "0x00000100"
+      },
+      "post_warmup_extract": 11260741980117631803,
+      "post_warmup_extract_hex": "0x9C46312B403D833B",
+      "warmup_steps": 256
+    },
+    {
+      "id": "KS-004",
+      "description": "Single-byte key",
+      "key_hex": "42",
+      "nonce_hex": "010101010101010101010101",
+      "pre_warmup": {
+        "init_x": 3131856216,
+        "init_y": 701589598,
+        "init_z": 2347501961,
+        "init_w": 2893163471,
+        "init_alpha": 3888508859,
+        "init_gamma": 4288683420,
+        "init_mu": 3889911149,
+        "init_sigma": 3879970342
+      },
+      "pre_warmup_hex": {
+        "init_x": "0xBAAC5558",
+        "init_y": "0x29D1685E",
+        "init_z": "0x8BEC0989",
+        "init_w": "0xAC722BCF",
+        "init_alpha": "0xE7C5EFBB",
+        "init_gamma": "0xFFA01D9C",
+        "init_mu": "0xE7DB556D",
+        "init_sigma": "0xE743A626"
+      },
+      "post_warmup": {
+        "x": 3228528662,
+        "y": 2830598970,
+        "z": 3581592335,
+        "w": 140920517,
+        "alpha": 4208137029,
+        "gamma": 3879527310,
+        "mu": 4117055467,
+        "sigma": 4258341082,
+        "counter": 256
+      },
+      "post_warmup_hex": {
+        "x": "0xC06F7016",
+        "y": "0xA8B7833A",
+        "z": "0xD57AC30F",
+        "w": "0x086646C5",
+        "alpha": "0xFAD31345",
+        "gamma": "0xE73CE38E",
+        "mu": "0xF56547EB",
+        "sigma": "0xFDD120DA",
+        "counter": "0x00000100"
+      },
+      "post_warmup_extract": 1643984918596487568,
+      "post_warmup_extract_hex": "0x16D09B92C10B0990",
+      "warmup_steps": 256
+    },
+    {
+      "id": "KS-005",
+      "description": "ASCII passphrase",
+      "key_hex": "636f727265637420686f727365206261747465727920737461706c65",
+      "nonce_hex": "6e6f6e63655f30303178797a4142",
+      "pre_warmup": {
+        "init_x": 1370488527,
+        "init_y": 3132143050,
+        "init_z": 4177589252,
+        "init_w": 2280652876,
+        "init_alpha": 4291589568,
+        "init_gamma": 3823778356,
+        "init_mu": 4007743425,
+        "init_sigma": 3902396470
+      },
+      "pre_warmup_hex": {
+        "init_x": "0x51AFFECF",
+        "init_y": "0xBAB0B5CA",
+        "init_z": "0xF900F404",
+        "init_w": "0x87F0004C",
+        "init_alpha": "0xFFCC75C0",
+        "init_gamma": "0xE3EA3A34",
+        "init_mu": "0xEEE14FC1",
+        "init_sigma": "0xE899D836"
+      },
+      "post_warmup": {
+        "x": 605796697,
+        "y": 4230053665,
+        "z": 891584645,
+        "w": 1377509425,
+        "alpha": 4119788856,
+        "gamma": 3867329184,
+        "mu": 3836336995,
+        "sigma": 4048386750,
+        "counter": 256
+      },
+      "post_warmup_hex": {
+        "x": "0x241BB959",
+        "y": "0xFC217F21",
+        "z": "0x35248085",
+        "w": "0x521B2031",
+        "alpha": "0xF58EFD38",
+        "gamma": "0xE682C2A0",
+        "mu": "0xE4A9DB63",
+        "sigma": "0xF14D7ABE",
+        "counter": "0x00000100"
+      },
+      "post_warmup_extract": 2765709349340166985,
+      "post_warmup_extract_hex": "0x2661C5FFF765BB49",
+      "warmup_steps": 256
+    }
+  ]
+}

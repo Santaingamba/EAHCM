@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/EAHCMTargets.cmake")
+
+check_required_components(EAHCM)
+
+# Re-find OpenSSL so downstream consumers get it automatically
+find_dependency(OpenSSL REQUIRED)

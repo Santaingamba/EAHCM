@@ -1,0 +1,21 @@
+# Doxygen configuration for EAHCM
+PROJECT_NAME           = "EAHCM"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "EAHCM 4D Chaotic Cipher — Official C++ Reference Implementation"
+OUTPUT_DIRECTORY       = docs/generated
+INPUT                  = include/eahcm
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+USE_MDFILE_AS_MAINPAGE = README.md
+BUILTIN_STL_SUPPORT    = YES
+JAVADOC_AUTOBRIEF      = YES
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+SORT_MEMBER_DOCS       = YES

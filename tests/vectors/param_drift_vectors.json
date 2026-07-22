@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-26T15:43:15.699746+00:00",
+  "generator": "generate_reference_vectors.py",
+  "description": "Bit-exact reference vectors for Python <-> C++ cross-validation. A C++ implementation is correct iff its output matches these values exactly.",
+  "constants": {
+    "MASK32": 4294967295,
+    "PARAM_FLOOR": 3758096384,
+    "DRIFT_MASK": 535822336,
+    "DRIFT_INTERVAL": 64,
+    "WARMUP_STEPS": 256,
+    "EPSILON_CONST": 608135816,
+    "PHI_FRAC": 2654435769
+  },
+  "vectors": [
+    {
+      "id": "PD-001",
+      "description": "Parameter drift events over 200 steps from canonical seed",
+      "initial_seed": {
+        "x": 305419896,
+        "y": 2596069104,
+        "z": 324478056,
+        "w": 2901139372,
+        "alpha": 4026531840,
+        "gamma": 4043309056,
+        "mu": 4060086272,
+        "sigma": 4076863488
+      },
+      "drift_interval": 64,
+      "drift_events": [
+        {
+          "step": 64,
+          "counter": 64,
+          "new_alpha": 3936148759,
+          "new_gamma": 4263319482,
+          "new_mu": 4017601036,
+          "new_sigma": 3845786845,
+          "new_alpha_hex": "0xEA9CDD17",
+          "new_gamma_hex": "0xFE1D17BA",
+          "new_mu_hex": "0xEF77BA0C",
+          "new_sigma_hex": "0xE53A0CDD"
+        },
+        {
+          "step": 128,
+          "counter": 128,
+          "new_alpha": 3976213546,
+          "new_gamma": 3810798173,
+          "new_mu": 3863633296,
+          "new_sigma": 4181561396,
+          "new_alpha_hex": "0xED00342A",
+          "new_gamma_hex": "0xE3242A5D",
+          "new_mu_hex": "0xE64A5D90",
+          "new_sigma_hex": "0xF93D9034"
+        },
+        {
+          "step": 192,
+          "counter": 192,
+          "new_alpha": 4089388669,
+          "new_gamma": 3962469763,
+          "new_mu": 3967648575,
+          "new_sigma": 4013113118,
+          "new_alpha_hex": "0xF3BF1E7D",
+          "new_gamma_hex": "0xEC2E7D83",
+          "new_mu_hex": "0xEC7D833F",
+          "new_sigma_hex": "0xEF333F1E"
+        }
+      ]
+    }
+  ]
+}
