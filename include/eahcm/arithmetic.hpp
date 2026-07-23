@@ -49,8 +49,8 @@ namespace eahcm {
 /// Matches the Python arbitrary-precision computation bit-for-bit.
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 L(std::uint32_t v, std::uint32_t p) noexcept {
-    // v * ~v fits in 64 bits (max: 0x7FFFFFFF * 0x80000000)
-    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(~v);
+    const std::uint32_t not_v = ~v;
+    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
 
     // Full 96-bit product: p * (v * ~v), then >> 32
     const __uint128_t full = static_cast<__uint128_t>(p) * vn;
@@ -77,7 +77,8 @@ L(std::uint32_t v, std::uint32_t p) noexcept {
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 L(std::uint32_t v, std::uint32_t p) noexcept {
     // v * ~v fits in 64 bits
-    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(~v);
+    const std::uint32_t not_v = ~v;
+    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
     const auto vn_hi = static_cast<std::uint32_t>(vn >> 32);
     const auto vn_lo = static_cast<std::uint32_t>(vn);
 
