@@ -31,7 +31,7 @@ target_compile_definitions(test_primitives PRIVATE
 add_test(NAME test_primitives COMMAND test_primitives)
 
 # ---- Test: State evolution (reference vectors) ----
-add_executable(test_state_evolution test_state_evolution.cpp)
+add_executable(test_state_evolution test_state_evolution.cpp test_helpers.hpp)
 target_link_libraries(test_state_evolution PRIVATE EAHCM::eahcm Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 target_compile_definitions(test_state_evolution PRIVATE
     EAHCM_VECTOR_DIR="${VECTOR_DIR}"
@@ -39,7 +39,7 @@ target_compile_definitions(test_state_evolution PRIVATE
 add_test(NAME test_state_evolution COMMAND test_state_evolution)
 
 # ---- Test: Key schedule (init vectors) ----
-add_executable(test_key_schedule test_key_schedule.cpp)
+add_executable(test_key_schedule test_key_schedule.cpp test_helpers.hpp)
 target_link_libraries(test_key_schedule PRIVATE EAHCM::eahcm Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 target_compile_definitions(test_key_schedule PRIVATE
     EAHCM_VECTOR_DIR="${VECTOR_DIR}"

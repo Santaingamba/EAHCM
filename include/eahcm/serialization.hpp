@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <span>
 
 #include "eahcm/config.hpp"

@@ -14,9 +14,9 @@
 
 #include <cstdint>
 
+#include "eahcm/bit_ops.hpp"
 #include "eahcm/config.hpp"
 #include "eahcm/constants.hpp"
-#include "eahcm/bit_ops.hpp"
 
 namespace eahcm {
 
@@ -49,16 +49,17 @@ namespace eahcm {
 /// Matches the Python arbitrary-precision computation bit-for-bit.
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 L(std::uint32_t v, std::uint32_t p) noexcept {
-    const std::uint32_t not_v = ~v;
-    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
+  const std::uint32_t not_v = ~v;
+  const auto vn =
+      static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
 
-    // Full 96-bit product: p * (v * ~v), then >> 32
-    const __uint128_t full = static_cast<__uint128_t>(p) * vn;
-    auto result = static_cast<std::uint32_t>(full >> 32);
+  // Full 96-bit product: p * (v * ~v), then >> 32
+  const __uint128_t full = static_cast<__uint128_t>(p) * vn;
+  auto result = static_cast<std::uint32_t>(full >> 32);
 
-    // Absorbing-state guard (Flaw 2 fix): branchless, constant-time
-    result += static_cast<std::uint32_t>(result == 0u);
-    return result;
+  // Absorbing-state guard (Flaw 2 fix): branchless, constant-time
+  result += static_cast<std::uint32_t>(result == 0u);
+  return result;
 }
 
 #else
@@ -76,24 +77,26 @@ L(std::uint32_t v, std::uint32_t p) noexcept {
 ///   Final result = low 32 bits of (p * vn_hi + (p * vn_lo >> 32)).
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 L(std::uint32_t v, std::uint32_t p) noexcept {
-    // v * ~v fits in 64 bits
-    const std::uint32_t not_v = ~v;
-    const auto vn = static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
-    const auto vn_hi = static_cast<std::uint32_t>(vn >> 32);
-    const auto vn_lo = static_cast<std::uint32_t>(vn);
+  // v * ~v fits in 64 bits
+  const std::uint32_t not_v = ~v;
+  const auto vn =
+      static_cast<std::uint64_t>(v) * static_cast<std::uint64_t>(not_v);
+  const auto vn_hi = static_cast<std::uint32_t>(vn >> 32);
+  const auto vn_lo = static_cast<std::uint32_t>(vn);
 
-    // Split multiplication for 96-bit product >> 32
-    const auto term1 = static_cast<std::uint64_t>(p) * static_cast<std::uint64_t>(vn_hi);
-    const auto term2 = static_cast<std::uint64_t>(p) * static_cast<std::uint64_t>(vn_lo);
-    auto result = static_cast<std::uint32_t>(term1 + (term2 >> 32));
+  // Split multiplication for 96-bit product >> 32
+  const auto term1 =
+      static_cast<std::uint64_t>(p) * static_cast<std::uint64_t>(vn_hi);
+  const auto term2 =
+      static_cast<std::uint64_t>(p) * static_cast<std::uint64_t>(vn_lo);
+  auto result = static_cast<std::uint32_t>(term1 + (term2 >> 32));
 
-    // Absorbing-state guard (Flaw 2 fix): branchless, constant-time
-    result += static_cast<std::uint32_t>(result == 0u);
-    return result;
+  // Absorbing-state guard (Flaw 2 fix): branchless, constant-time
+  result += static_cast<std::uint32_t>(result == 0u);
+  return result;
 }
 
 #endif // EAHCM_HAS_UINT128
-
 
 // =========================================================================
 // F(v) — Branchless Tent Map
@@ -124,24 +127,24 @@ L(std::uint32_t v, std::uint32_t p) noexcept {
 /// Fixed-point guard prevents F(0) = 0 and F(0x80000000) = 0.
 ///
 /// @param v  The 32-bit state variable.
-/// @return   The folded result, guaranteed non-zero for inputs 0 and 0x80000000.
+/// @return   The folded result, guaranteed non-zero for inputs 0 and
+/// 0x80000000.
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 F(std::uint32_t v) noexcept {
-    // Simulate arithmetic right shift: derive mask from MSB
-    const std::uint32_t mask = (v & 0x8000'0000u) ? 0xFFFF'FFFFu : 0x0000'0000u;
+  // Simulate arithmetic right shift: derive mask from MSB
+  const std::uint32_t mask = (v & 0x8000'0000u) ? 0xFFFF'FFFFu : 0x0000'0000u;
 
-    // Fold: XOR with sign mask, then left-shift by 1
-    std::uint32_t folded = ((v ^ mask) << 1);
+  // Fold: XOR with sign mask, then left-shift by 1
+  std::uint32_t folded = ((v ^ mask) << 1);
 
-    // Fixed-point guard (Flaw 4 fix):
-    // PHI_FRAC = 0x9E3779B9 is the fractional part of the golden ratio × 2^32.
-    if (folded == 0u) {
-        folded ^= PHI_FRAC;
-    }
+  // Fixed-point guard (Flaw 4 fix):
+  // PHI_FRAC = 0x9E3779B9 is the fractional part of the golden ratio × 2^32.
+  if (folded == 0u) {
+    folded ^= PHI_FRAC;
+  }
 
-    return folded;
+  return folded;
 }
-
 
 // =========================================================================
 // R(w) — Bit-Mixer (Corrected SHA-256-inspired Sigma function)
@@ -170,7 +173,7 @@ F(std::uint32_t v) noexcept {
 /// @return   The mixed result.
 [[nodiscard]] EAHCM_FORCE_INLINE constexpr std::uint32_t
 R(std::uint32_t w) noexcept {
-    return rol32(w, 13) ^ rol32(w, 7) ^ (w >> 3);
+  return rol32(w, 13) ^ rol32(w, 7) ^ (w >> 3);
 }
 
 } // namespace eahcm

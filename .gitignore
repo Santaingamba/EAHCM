@@ -9,3 +9,4 @@ out/
 .cmake/
 CMakeCache.txt
 CMakeFiles/
+.vscode/
