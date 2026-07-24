@@ -10,12 +10,14 @@ The chaotic evolution is governed by four continuously drifting parameters $(\al
 
 ### 2.1 State Evolution Equations
 The discrete-time state transition from step $n$ to step $n+1$ is defined by the following coupled equations (all operations wrap modulo $2^{32}$):
-
-$$x_{n+1} = L(x_n, \alpha_n) + [F(z_n) \oplus ROL_{32}(y_n, 11)] + \epsilon_n$$
-$$y_{n+1} = L(y_n, \gamma_n) + [R(w_n) \oplus ROL_{32}(x_n, 17)]$$
-$$z_{n+1} = L(z_n, \mu_n) + [F(x_n) \oplus ROL_{32}(w_n, 23)]$$
-$$w_{n+1} = L(w_n, \sigma_n) + [R(y_n) \oplus ROL_{32}(z_n, 31)]$$
-
+$$
+\begin{aligned}
+x_{n+1} &= L(x_n, \alpha_n) + [F(z_n) \oplus ROL_{32}(y_n, 11)] + \epsilon_n \\
+y_{n+1} &= L(y_n, \gamma_n) + [R(w_n) \oplus ROL_{32}(x_n, 17)] \\
+z_{n+1} &= L(z_n, \mu_n) + [F(x_n) \oplus ROL_{32}(w_n, 23)] \\
+w_{n+1} &= L(w_n, \sigma_n) + [R(y_n) \oplus ROL_{32}(z_n, 31)]
+\end{aligned}
+$$
 **Where:**
 * $L(v, p)$: The Integer Logistic Driver.
 * $F(v)$: The Branchless Tent Map (phase-space folder).
@@ -35,9 +37,12 @@ Here, the bitwise NOT operator ($\sim v$) substitutes $(1-x)$. This yields a deg
 
 ### 3.2 Branchless Tent Map $F(v)$
 To fold the phase-space abruptly (simulating absolute value dynamics in a finite field without branching), the tent map is defined as:
-
-$$mask = \text{ArithmeticRightShift}(v, 31)$$
-$$F(v) = (v \oplus mask) \ll 1$$
+$$
+\begin{aligned}
+mask &= \text{ArithmeticRightShift}(v, 31) \\
+F(v) &= (v \oplus mask) \ll 1
+\end{aligned}
+$$
 
 If the input evaluates to exactly zero after folding, a constant $\Phi_{frac} = \text{0x9E3779B9}$ (fractional golden ratio) is XOR'd to prevent fixed-point trapping.
 
@@ -50,25 +55,32 @@ The asymmetric right shift ($w \gg 3$) ensures non-invertibility, making the fun
 
 ## 4. Keystream Extraction (Output Function)
 To extract a 64-bit keystream word per step without leaking internal state variables, the cipher utilizes algebraic mixing from two different groups (Addition modulo $2^{32}$ and Bitwise XOR). 
-
-$$Out_{hi} = (x_n + z_n) \oplus ROL_{32}(y_n, 16)$$
-$$Out_{lo} = (y_n + w_n) \oplus ROL_{32}(x_n, 16)$$
-$$Keystream_{64} = (Out_{hi} \ll 32) \ |\ Out_{lo}$$
-
+$$
+\begin{aligned}
+Out_{hi} &= (x_n + z_n) \oplus ROL_{32}(y_n, 16) \\
+Out_{lo} &= (y_n + w_n) \oplus ROL_{32}(x_n, 16) \\
+Keystream_{64} &= (Out_{hi} \ll 32) \ |\ Out_{lo}
+\end{aligned}
+$$
 This exposes only 64 bits of the 128-bit internal state $(x, y, z, w)$ per step, making state-recovery attacks mathematically infeasible.
 
 ## 5. Parameter Drift (Dynamic Key Generation)
 Static chaotic parameters can succumb to phase-space reconstruction attacks. To mitigate this, EAHCM implements **Parameter Drift**. Every 64 steps (when $counter \pmod{64} == 0$), the underlying chaotic parameters $(\alpha, \gamma, \mu, \sigma)$ are dynamically altered based on the preceding state vector:
-
-$$fold = x_{prev} \oplus y_{prev} \oplus z_{prev} \oplus w_{prev}$$
-$$\alpha_{n+1} = \text{clamp\_param}(\alpha_n \oplus ROL_{32}(fold, 3))$$
-$$\gamma_{n+1} = \text{clamp\_param}(\gamma_n \oplus ROL_{32}(fold, 11))$$
-$$\mu_{n+1} = \text{clamp\_param}(\mu_n \oplus ROL_{32}(fold, 19))$$
-$$\sigma_{n+1} = \text{clamp\_param}(\sigma_n \oplus ROL_{32}(fold, 27))$$
+$$
+\begin{aligned}
+fold &= x_{prev} \oplus y_{prev} \oplus z_{prev} \oplus w_{prev} \\
+\alpha_{n+1} &= \text{clamp\_param}(\alpha_n \oplus ROL_{32}(fold, 3)) \\
+\gamma_{n+1} &= \text{clamp\_param}(\gamma_n \oplus ROL_{32}(fold, 11)) \\
+\mu_{n+1} &= \text{clamp\_param}(\mu_n \oplus ROL_{32}(fold, 19)) \\
+\sigma_{n+1} &= \text{clamp\_param}(\sigma_n \oplus ROL_{32}(fold, 27))
+\end{aligned}
+$$
 
 Where the `clamp_param(x)` function ensures parameters stay strictly within the chaotic regime:
-$$\text{clamp\_param}(x) = PARAM\_FLOOR + (x \pmod{DRIFT\_MASK})$$
-*(With $PARAM\_FLOOR = \text{0xE0000000}$ and $DRIFT\_MASK = \text{0x1FF00000}$)*
+$$
+\text{clamp\_param}(x) = \text{PARAM\_FLOOR} + (x \pmod{\text{DRIFT\_MASK}})
+$$
+*(With $\text{PARAM\_FLOOR} = \text{0xE0000000}$ and $\text{DRIFT\_MASK} = \text{0x1FF00000}$)*
 
 ## 6. Key Schedule & State Initialization (HKDF-SHA3-256)
 A cryptographically secure key schedule is vital to prevent related-key attacks and ensure ideal entropy distribution in the initial chaotic state. EAHCM uses the standard **HKDF** algorithm (RFC 5869) backed by **SHA3-256**.
