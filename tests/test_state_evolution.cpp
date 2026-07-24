@@ -4,24 +4,13 @@
 // and verifies bit-exact match against the C++ implementation.
 
 #include <catch2/catch_test_macros.hpp>
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <string>
 #include <cstdint>
 #include "eahcm/state.hpp"
 #include "eahcm/constants.hpp"
+#include "test_helpers.hpp"
 
 using json = nlohmann::json;
 using namespace eahcm;
-
-static json load_json(const std::string& filename) {
-    std::string path = std::string(EAHCM_VECTOR_DIR) + "/" + filename;
-    std::ifstream f(path);
-    REQUIRE(f.is_open());
-    json j;
-    f >> j;
-    return j;
-}
 
 // =========================================================================
 // State Evolution: bit-exact step-by-step validation

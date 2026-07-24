@@ -16,7 +16,6 @@
 #include <cstring>
 #include <span>
 #include <vector>
-#include <stdexcept>
 
 #include "eahcm/config.hpp"
 #include "eahcm/constants.hpp"
@@ -69,6 +68,11 @@ hkdf(std::span<const std::uint8_t> ikm,
 ///   6. Run 256-step warmup
 ///
 /// Exactly matches Python key_schedule.derive_state().
+///
+/// @note Parameters are clamped twice (once in get_init_params, once in
+///       make_state) to match the Python reference implementation exactly.
+///       Because PARAM_FLOOR is not a multiple of DRIFT_MASK, double-clamping
+///       is NOT idempotent and produces different values than single-clamping.
 ///
 /// @param user_key  Raw user secret key (any length, must be non-empty).
 /// @param nonce     Unique per-message value.

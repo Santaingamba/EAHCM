@@ -8,7 +8,7 @@
 
 #include <array>
 #include <cstdint>
-#include <cstring>
+#include <cstddef>
 
 #include "eahcm/config.hpp"
 #include "eahcm/constants.hpp"

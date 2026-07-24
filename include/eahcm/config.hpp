@@ -64,6 +64,21 @@
 #endif
 
 // ---- Export/import macros for shared library ----
+//
+// When building EAHCM as a shared library (.dll / .so / .dylib):
+//   1. The CMake build system defines both EAHCM_SHARED_LIBRARY and
+//      EAHCM_BUILDING_LIBRARY automatically (see root CMakeLists.txt).
+//   2. This causes EAHCM_API to expand to dllexport (MSVC) or
+//      visibility("default") (GCC/Clang), marking public symbols.
+//
+// When consuming EAHCM as a shared library from another project:
+//   - Define EAHCM_SHARED_LIBRARY but NOT EAHCM_BUILDING_LIBRARY.
+//   - This causes EAHCM_API to expand to dllimport (MSVC) or
+//     visibility("default") (GCC/Clang).
+//
+// When building/consuming as a static library (the default):
+//   - Neither macro is defined. EAHCM_API expands to nothing.
+//
 #if defined(EAHCM_SHARED_LIBRARY)
     #if EAHCM_COMPILER_MSVC
         #if defined(EAHCM_BUILDING_LIBRARY)

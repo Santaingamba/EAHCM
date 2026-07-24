@@ -65,6 +65,22 @@ std::uint64_t Cipher::next() {
     return extract(state_);
 }
 
+// ---- Keystream generation: partial-word buffering strategy ----
+//
+// The chaotic core produces 64-bit words (8 bytes) at a time via next().
+// Users may request an arbitrary number of bytes via generate(). To bridge
+// this mismatch, we use a 3-phase approach:
+//
+//   Phase 1: Drain leftover bytes from the previous call's partial word
+//            (buffer_pos_ < 8 means there are leftover bytes).
+//   Phase 2: Fill 8-byte-aligned chunks directly from next() — no buffering
+//            overhead, maximum throughput.
+//   Phase 3: If trailing bytes remain (output size not a multiple of 8),
+//            generate one more 64-bit word, serve the needed bytes, and
+//            save the remainder in buffer_ for the next call.
+//
+// buffer_pos_ == 8 means the buffer is empty (fully consumed).
+
 void Cipher::generate(std::span<std::uint8_t> output) {
     std::size_t pos = 0;
     while (pos < output.size() && buffer_pos_ < 8)
