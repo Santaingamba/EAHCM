@@ -49,18 +49,22 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DEAHCM_BUILD_TESTS=ON \
             -DEAHCM_BUILD_EXAMPLES=ON \
+            -DEAHCM_BUILD_BENCHMARKS=ON \
             -DEAHCM_WARNINGS_AS_ERRORS=ON
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
         run: |
-          cmake -B build -DEAHCM_BUILD_TESTS=ON -DEAHCM_BUILD_EXAMPLES=ON
+          cmake -B build -DEAHCM_BUILD_TESTS=ON -DEAHCM_BUILD_EXAMPLES=ON -DEAHCM_BUILD_BENCHMARKS=ON
 
       - name: Build
         run: cmake --build build --config Release
 
       - name: Test
         run: ctest --test-dir build --output-on-failure -C Release
+
+      - name: Run Benchmarks
+        run: cmake --build build --config Release --target run_benchmarks
 
   sanitizers:
     runs-on: ubuntu-latest
