@@ -1,5 +1,10 @@
-# Tests CMakeLists.txt
-cmake_minimum_required(VERSION 3.20)
+# SPDX-License-Identifier: MIT
+# tests/CMakeLists.txt — EAHCM Catch2 test suite.
+#
+# Fetches Catch2 and nlohmann/json via FetchContent, then defines one
+# executable per test category.  All executables are registered with CTest.
+#
+# Enabled when: EAHCM_BUILD_TESTS=ON (default)
 
 include(FetchContent)
 
@@ -19,10 +24,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# ---- Copy reference vectors ----
+# ---- Reference vector directory (authoritative JSON files) ----
 set(VECTOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vectors")
 
-# ---- Test: Core primitives ----
+# ---- Test: Core primitives (L, F, R, rol32) ----
 add_executable(test_primitives test_primitives.cpp)
 target_link_libraries(test_primitives PRIVATE EAHCM::eahcm Catch2::Catch2WithMain)
 target_compile_definitions(test_primitives PRIVATE
@@ -55,3 +60,18 @@ add_test(NAME test_serialization COMMAND test_serialization)
 add_executable(test_cipher test_cipher.cpp)
 target_link_libraries(test_cipher PRIVATE EAHCM::eahcm Catch2::Catch2WithMain)
 add_test(NAME test_cipher COMMAND test_cipher)
+
+# ---- Test: AEAD Construction (Stage 2) ----
+add_executable(test_aead test_aead.cpp)
+target_link_libraries(test_aead PRIVATE EAHCM::eahcm Catch2::Catch2WithMain OpenSSL::Crypto)
+add_test(NAME test_aead COMMAND test_aead)
+
+# ---- Test: C API Compilation (Stage 3) ----
+add_executable(test_c_api test_c_api.c)
+target_link_libraries(test_c_api PRIVATE EAHCM::eahcm)
+add_test(NAME test_c_api COMMAND test_c_api)
+
+# ---- Test: C API Functional vs C++ (Stage 3) ----
+add_executable(test_c_api_functional test_c_api_functional.cpp)
+target_link_libraries(test_c_api_functional PRIVATE EAHCM::eahcm Catch2::Catch2WithMain)
+add_test(NAME test_c_api_functional COMMAND test_c_api_functional)

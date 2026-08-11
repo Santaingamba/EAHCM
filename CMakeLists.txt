@@ -1,6 +1,39 @@
 # SPDX-License-Identifier: MIT
 # EAHCM — Root CMakeLists.txt
-# Production-quality C++ reference implementation of the EAHCM cipher.
+#
+# Production-quality C++20 reference implementation of the EAHCM 4D Chaotic
+# Cipher.
+#
+# ┌──────────────────────────────────────────────────────────────────────┐
+# │  Build Graph                                                         │
+# │                                                                      │
+# │  EAHCM::eahcm (STATIC or SHARED)                                    │
+# │    ├─ src/key_schedule.cpp   → OpenSSL::Crypto                      │
+# │    ├─ src/cipher.cpp                                                 │
+# │    └─ src/serialization.cpp                                          │
+# │                                                                      │
+# │  tests/*          → EAHCM::eahcm + Catch2 + nlohmann_json           │
+# │  examples/*       → EAHCM::eahcm                                    │
+# │  benchmarks/*     → EAHCM::eahcm  (placeholder, no targets yet)     │
+# └──────────────────────────────────────────────────────────────────────┘
+#
+# Header-only components (compiled into consumers, NOT into libeahcm):
+#   include/eahcm/arithmetic.hpp  — L(), F(), R()   (FROZEN)
+#   include/eahcm/state.hpp       — step(), extract(), warmup()  (FROZEN)
+#   include/eahcm/bit_ops.hpp     — rol32()
+#   include/eahcm/types.hpp       — State struct, load/store helpers
+#   include/eahcm/constants.hpp   — frozen numeric constants
+#   include/eahcm/config.hpp      — compiler / platform detection
+#   include/eahcm/version.hpp     — semantic version constants
+#   include/eahcm/exceptions.hpp  — exception hierarchy
+#
+# Options:
+#   EAHCM_BUILD_TESTS       ON   — build Catch2 test suite
+#   EAHCM_BUILD_EXAMPLES    ON   — build usage examples
+#   EAHCM_BUILD_BENCHMARKS  OFF  — build performance benchmarks
+#   EAHCM_BUILD_SHARED      OFF  — build as shared library (.dll/.so)
+#   EAHCM_ENABLE_SANITIZERS OFF  — enable ASan + UBSan (GCC/Clang only)
+#   EAHCM_WARNINGS_AS_ERRORS ON  — treat warnings as errors
 
 cmake_minimum_required(VERSION 3.20)
 
@@ -8,7 +41,7 @@ project(EAHCM
     VERSION 1.0.0
     DESCRIPTION "EAHCM 4D Chaotic Cipher — Official C++ Reference Implementation"
     HOMEPAGE_URL "https://github.com/eahcm/eahcm"
-    LANGUAGES CXX
+    LANGUAGES CXX C
 )
 
 # ---- C++ Standard ----
@@ -46,6 +79,8 @@ if(EAHCM_ENABLE_SANITIZERS)
 endif()
 
 # ---- Find OpenSSL ----
+# Required for HMAC-SHA3-256 key derivation (key_schedule.cpp).
+# On Windows: install via vcpkg or place OpenSSL in a standard prefix.
 find_package(OpenSSL REQUIRED)
 
 # ---- Library target ----
@@ -53,6 +88,8 @@ set(EAHCM_SOURCES
     src/key_schedule.cpp
     src/cipher.cpp
     src/serialization.cpp
+    src/aead.cpp                   # Stage 2: ChaCha20-Poly1305 AEAD
+    src/c_api.cpp                  # Stage 3: C API Layer
 )
 
 if(EAHCM_BUILD_SHARED)
@@ -97,8 +134,12 @@ install(TARGETS eahcm
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+# Install public headers (eahcm/ directory).
+# Note: include/eahcm/detail/ is intentionally excluded from the install
+# because its contents are internal implementation details.
 install(DIRECTORY include/eahcm
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PATTERN "detail" EXCLUDE
 )
 
 install(EXPORT EAHCMTargets

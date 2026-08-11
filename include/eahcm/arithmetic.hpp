@@ -3,11 +3,29 @@
 //
 // arithmetic.hpp — Frozen mathematical primitives L(), F(), R().
 //
-// These functions implement the corrected EAHCM core primitives exactly
-// as specified in the Python reference implementation. They are IMMUTABLE.
+// ┌─────────────────────────────────────────────────────────────────────┐
+// │  IMMUTABLE — DO NOT MODIFY THE MATHEMATICS IN THIS FILE            │
+// │                                                                     │
+// │  Any change to L(), F(), or R() will:                              │
+// │    1. Invalidate ALL reference vectors                              │
+// │    2. Break bit-exact Python compatibility                          │
+// │    3. Require a full respecification of the cipher                  │
+// └─────────────────────────────────────────────────────────────────────┘
 //
-// DO NOT MODIFY the mathematics in this file. Any change will invalidate
-// all reference vectors and break bit-exact reproducibility.
+// These three functions implement the corrected EAHCM core primitives
+// exactly as specified in the Python reference implementation.
+//
+// Architecture position
+// ──────────────────────
+//   arithmetic.hpp (this file)
+//     ↳ consumed by: state.hpp (step, drift, extract, warmup)
+//     ↳ consumed by: tests/test_primitives.cpp (direct unit tests)
+//
+// Compilation branches
+// ─────────────────────
+//   EAHCM_HAS_UINT128 == 1  → L() uses __uint128_t (GCC/Clang, 64-bit)
+//   EAHCM_HAS_UINT128 == 0  → L() uses split 64-bit multiplication (MSVC/32-bit)
+//   Both paths produce identical output for all inputs.
 
 #ifndef EAHCM_ARITHMETIC_HPP
 #define EAHCM_ARITHMETIC_HPP
@@ -34,7 +52,7 @@ namespace eahcm {
 //   - Nonlinear: degree-2 polynomial in v (quadratic chaos)
 //   - Parameter-sensitive: small Δp → radically different trajectory
 //   - 96-bit intermediate: requires split multiplication on MSVC
-//   - Guaranteed non-zero output (absorbing-state guard)
+//   - Guaranteed non-zero output (absorbing-state guard, Flaw 2 fix)
 //
 // The Python implementation computes p * v * ~v using arbitrary-precision
 // integers. In C++, we must handle the intermediate carefully:

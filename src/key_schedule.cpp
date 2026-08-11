@@ -1,39 +1,70 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 EAHCM Authors
 //
-// key_schedule.cpp — HKDF-SHA3-256 implementation for the EAHCM cipher.
+// key_schedule.cpp — HKDF-SHA3-256 key derivation for the EAHCM cipher.
 //
-// This implements the key derivation pipeline using the stdlib's
-// <hmac> + <sha3> or a bundled implementation.
+// Implements the key-derivation pipeline using OpenSSL's HMAC and EVP APIs.
 //
-// We implement HMAC-SHA3-256 using the standard HMAC construction
-// (RFC 2104) over SHA3-256. Note: SHA3 does not need HMAC for security
-// (KMAC exists), but the Python reference uses hmac.new(key, data, sha3_256)
-// which is standard HMAC construction, so we must match it exactly.
+// Construction note (HMAC over SHA3-256)
+// ───────────────────────────────────────
+// SHA3 does not inherently need HMAC for domain separation (KMAC exists),
+// but the Python reference implementation uses:
+//   hmac.new(key, data, hashlib.sha3_256)
+// which is the standard HMAC-SHA3-256 construction (RFC 2104).
+// We must reproduce this exactly to remain bit-compatible.
+//
+// OpenSSL compatibility note
+// ──────────────────────────
+// We use the OpenSSL `HMAC()` convenience function (from <openssl/hmac.h>).
+// In OpenSSL 3.0+, HMAC() is marked deprecated in favour of the EVP_MAC API.
+// The function still works correctly and produces identical output.
+// A future stage will introduce an OpenSSL-version compatibility shim that
+// dispatches to EVP_MAC on OpenSSL ≥ 3.0 and to HMAC() on OpenSSL < 3.0.
+// Until then, suppress deprecation warnings in the CMake build if needed.
+//
+// Key-derivation pipeline (per §7.1 of the specification)
+// ─────────────────────────────────────────────────────────
+//   derive_state():
+//     1. derived_salt ← nonce ∥ salt
+//     2. state_bytes  ← HKDF(key, derived_salt, info+"-state-init", 16)
+//     3. param_bytes  ← HKDF(key, derived_salt, info+"-param-init", 16)
+//     4. x,y,z,w      ← load_le32(state_bytes[0..15])
+//     5. α,γ,μ,σ      ← clamp_param(load_le32(param_bytes[0..15]))
+//     6. guard_absorbing() on x,y,z,w
+//     7. make_state()  (clamps params a second time — see note below)
+//     8. warmup(256 steps)
+//
+//   Double-clamping note:
+//     get_init_params() clamps α,γ,μ,σ once.  derive_state() then calls
+//     make_state() which clamps them again.  Because PARAM_FLOOR is not a
+//     multiple of DRIFT_MASK, double-clamping is NOT idempotent.  This
+//     reproduces the Python reference exactly and must not be changed.
 
 #include "eahcm/key_schedule.hpp"
+#include "eahcm/detail/key_schedule_impl.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
 #include <vector>
 
-// We use OpenSSL for SHA3-256 and HMAC.
-// If OpenSSL is not available, a bundled implementation could be provided.
+// OpenSSL headers for HMAC-SHA3-256
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
 namespace eahcm::detail {
 
+// =========================================================================
+// HMAC-SHA3-256 and HKDF building blocks
+// =========================================================================
 
-// ---- HMAC-SHA3-256 ----
 std::array<std::uint8_t, 32>
 sha3_256_hmac(std::span<const std::uint8_t> key,
               std::span<const std::uint8_t> data) {
     std::array<std::uint8_t, 32> result{};
     unsigned int len = 32;
 
-    // Use the HMAC API
+    // Note: HMAC() is deprecated in OpenSSL 3.x — see file-level comment.
     unsigned char* out = HMAC(EVP_sha3_256(),
                               key.data(), static_cast<int>(key.size()),
                               data.data(), data.size(),
@@ -45,36 +76,34 @@ sha3_256_hmac(std::span<const std::uint8_t> key,
     return result;
 }
 
-// ---- HKDF-Extract (RFC 5869 §2.2) ----
 std::array<std::uint8_t, 32>
 hkdf_extract(std::span<const std::uint8_t> salt,
              std::span<const std::uint8_t> ikm) {
     if (salt.empty()) {
-        // If salt is empty, use 32 zero bytes
+        // RFC 5869 §2.2: if salt is not provided, use a string of HashLen zeros
         std::array<std::uint8_t, 32> zero_salt{};
         return sha3_256_hmac(zero_salt, ikm);
     }
     return sha3_256_hmac(salt, ikm);
 }
 
-// ---- HKDF-Expand (RFC 5869 §2.3) ----
 std::vector<std::uint8_t>
 hkdf_expand(std::span<const std::uint8_t> prk,
             std::span<const std::uint8_t> info,
             std::size_t length) {
-    constexpr std::size_t hash_len = 32; // SHA3-256 output
+    constexpr std::size_t hash_len = 32; // SHA3-256 output length
     if (length > hash_len * 255) {
         throw std::invalid_argument(
-            "HKDF-Expand: requested length exceeds maximum");
+            "HKDF-Expand: requested length exceeds maximum (255 × HashLen)");
     }
 
     const std::size_t n_blocks = (length + hash_len - 1) / hash_len;
     std::vector<std::uint8_t> okm;
     okm.reserve(n_blocks * hash_len);
 
+    // T(0) = empty; T(i) = HMAC(PRK, T(i-1) || info || i)
     std::vector<std::uint8_t> t_prev;
     for (std::size_t i = 1; i <= n_blocks; ++i) {
-        // Build input: T(i-1) || info || i
         std::vector<std::uint8_t> input;
         input.reserve(t_prev.size() + info.size() + 1);
         input.insert(input.end(), t_prev.begin(), t_prev.end());
@@ -90,7 +119,6 @@ hkdf_expand(std::span<const std::uint8_t> prk,
     return okm;
 }
 
-// ---- Full HKDF ----
 std::vector<std::uint8_t>
 hkdf(std::span<const std::uint8_t> ikm,
      std::span<const std::uint8_t> salt,
@@ -105,12 +133,16 @@ hkdf(std::span<const std::uint8_t> ikm,
 
 namespace eahcm {
 
-// Default info string
+// =========================================================================
+// Private helpers (file-scope only)
+// =========================================================================
+
+// Default domain-separation info string (ASCII bytes of "EAHCM-v1")
 static constexpr std::uint8_t DEFAULT_INFO[] = {
     'E','A','H','C','M','-','v','1'
 };
 
-// Helper to build info+suffix
+/// Build the HKDF info string: (user info or default) + suffix.
 static std::vector<std::uint8_t>
 build_info(std::span<const std::uint8_t> info, const char* suffix) {
     std::vector<std::uint8_t> result;
@@ -126,7 +158,7 @@ build_info(std::span<const std::uint8_t> info, const char* suffix) {
     return result;
 }
 
-// Helper to build derived salt = nonce + salt
+/// Build the HKDF salt: nonce ∥ optional_salt.
 static std::vector<std::uint8_t>
 build_salt(std::span<const std::uint8_t> nonce,
            std::span<const std::uint8_t> salt) {
@@ -136,6 +168,10 @@ build_salt(std::span<const std::uint8_t> nonce,
     derived.insert(derived.end(), salt.begin(), salt.end());
     return derived;
 }
+
+// =========================================================================
+// Public API implementation
+// =========================================================================
 
 InitParams
 get_init_params(std::span<const std::uint8_t> user_key,
@@ -147,16 +183,14 @@ get_init_params(std::span<const std::uint8_t> user_key,
     }
 
     auto derived_salt = build_salt(nonce, salt);
-    auto state_info = build_info(info, "-state-init");
-    auto param_info = build_info(info, "-param-init");
+    auto state_info   = build_info(info, "-state-init");
+    auto param_info   = build_info(info, "-param-init");
 
-    // Derive 16 bytes for state
-    auto state_bytes = detail::hkdf(
-        user_key, derived_salt, state_info, 16);
+    // Derive 16 bytes for initial state variables
+    auto state_bytes = detail::hkdf(user_key, derived_salt, state_info, 16);
 
-    // Derive 16 bytes for parameters
-    auto param_bytes = detail::hkdf(
-        user_key, derived_salt, param_info, 16);
+    // Derive 16 bytes for chaotic parameters
+    auto param_bytes = detail::hkdf(user_key, derived_salt, param_info, 16);
 
     // Parse as little-endian uint32s (matches Python struct.unpack("<I", ...))
     auto raw_x = load_le32(state_bytes.data());
@@ -164,12 +198,13 @@ get_init_params(std::span<const std::uint8_t> user_key,
     auto raw_z = load_le32(state_bytes.data() + 8);
     auto raw_w = load_le32(state_bytes.data() + 12);
 
+    // First clamp of parameters (second clamp occurs in make_state)
     auto raw_alpha = clamp_param(load_le32(param_bytes.data()));
     auto raw_gamma = clamp_param(load_le32(param_bytes.data() + 4));
     auto raw_mu    = clamp_param(load_le32(param_bytes.data() + 8));
     auto raw_sigma = clamp_param(load_le32(param_bytes.data() + 12));
 
-    // Guard absorbing states
+    // Guard absorbing states before warmup
     auto init_x = guard_absorbing(raw_x);
     auto init_y = guard_absorbing(raw_y);
     auto init_z = guard_absorbing(raw_z);
@@ -188,18 +223,14 @@ derive_state(std::span<const std::uint8_t> user_key,
              std::span<const std::uint8_t> info) {
     auto params = get_init_params(user_key, nonce, salt, info);
 
-    // We must use make_state here to reproduce the exact behavior of Python's
-    // EAHCMKeySchedule.initialize(). In Python, the params are clamped once in
-    // _clamp_param, and then clamped AGAIN when passed into EAHCMState.__init__.
-    // Because PARAM_FLOOR is not a multiple of DRIFT_MASK, clamping twice is
-    // NOT idempotent and produces a different value than clamping once.
-    // To match Python bit-for-bit, we must double-clamp.
+    // make_state() clamps parameters a second time (see double-clamping note
+    // in the file-level comment).  This reproduces Python bit-for-bit.
     State s = make_state(
         params.init_x, params.init_y, params.init_z, params.init_w,
         params.init_alpha, params.init_gamma, params.init_mu, params.init_sigma
     );
 
-    // Warmup: 256 steps with output discarded
+    // Mandatory 256-step warmup — output is discarded
     warmup(s);
 
     return s;
@@ -215,10 +246,11 @@ derive_state_with_mixing(std::span<const std::uint8_t> user_key,
         throw KeyError("plaintext_hash must be at least 16 bytes");
     }
 
-    // Standard initialization first
+    // Standard initialization (256-step warmup included)
     State s = derive_state(user_key, nonce, salt, info);
 
-    // XOR hash into state (little-endian parse, matching Python)
+    // XOR first 16 bytes of plaintext hash into state (little-endian parse,
+    // matching Python key_schedule.derive_state_with_mixing())
     const auto hx = load_le32(plaintext_hash.data());
     const auto hy = load_le32(plaintext_hash.data() + 4);
     const auto hz = load_le32(plaintext_hash.data() + 8);
@@ -229,7 +261,7 @@ derive_state_with_mixing(std::span<const std::uint8_t> user_key,
     s.z = guard_absorbing(s.z ^ hz);
     s.w = guard_absorbing(s.w ^ hw);
 
-    // 64 additional warmup steps
+    // POST_HASH_STEPS (64) additional warmup steps to diffuse the hash XOR
     for (std::uint32_t i = 0; i < POST_HASH_STEPS; ++i) {
         step(s);
     }

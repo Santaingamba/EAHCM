@@ -4,6 +4,7 @@
 // Provides common JSON loading and hex-to-bytes conversion functions
 // used across multiple test files to avoid code duplication.
 
+#pragma once
 #ifndef EAHCM_TEST_HELPERS_HPP
 #define EAHCM_TEST_HELPERS_HPP
 
