@@ -35,10 +35,10 @@ struct alignas(32) VectorState<8> {
     __m256i counter;
 
     /// Read an element from a vector.
-    EAHCM_FORCE_INLINE std::uint32_t get_x(int lane) const { return reinterpret_cast<const std::uint32_t*>(&x)[lane]; }
-    EAHCM_FORCE_INLINE std::uint32_t get_y(int lane) const { return reinterpret_cast<const std::uint32_t*>(&y)[lane]; }
-    EAHCM_FORCE_INLINE std::uint32_t get_z(int lane) const { return reinterpret_cast<const std::uint32_t*>(&z)[lane]; }
-    EAHCM_FORCE_INLINE std::uint32_t get_w(int lane) const { return reinterpret_cast<const std::uint32_t*>(&w)[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_x(int lane) const { alignas(32) std::uint32_t temp[8]; _mm256_store_si256(reinterpret_cast<__m256i*>(temp), x); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_y(int lane) const { alignas(32) std::uint32_t temp[8]; _mm256_store_si256(reinterpret_cast<__m256i*>(temp), y); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_z(int lane) const { alignas(32) std::uint32_t temp[8]; _mm256_store_si256(reinterpret_cast<__m256i*>(temp), z); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_w(int lane) const { alignas(32) std::uint32_t temp[8]; _mm256_store_si256(reinterpret_cast<__m256i*>(temp), w); return temp[lane]; }
 };
 
 namespace avx2 {

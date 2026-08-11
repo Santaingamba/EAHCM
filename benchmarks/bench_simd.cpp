@@ -129,5 +129,3 @@ static void BM_SIMD_NEON_Extract(benchmark::State& state) {
 BENCHMARK(BM_SIMD_NEON_Extract);
 
 #endif // __ARM_NEON
-
-BENCHMARK_MAIN();

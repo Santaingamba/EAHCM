@@ -35,10 +35,10 @@ struct alignas(16) VectorState<4> {
     uint32x4_t counter;
 
     /// Read an element from a vector.
-    EAHCM_FORCE_INLINE std::uint32_t get_x(int lane) const { return vgetq_lane_u32(x, lane); }
-    EAHCM_FORCE_INLINE std::uint32_t get_y(int lane) const { return vgetq_lane_u32(y, lane); }
-    EAHCM_FORCE_INLINE std::uint32_t get_z(int lane) const { return vgetq_lane_u32(z, lane); }
-    EAHCM_FORCE_INLINE std::uint32_t get_w(int lane) const { return vgetq_lane_u32(w, lane); }
+    EAHCM_FORCE_INLINE std::uint32_t get_x(int lane) const { alignas(16) std::uint32_t temp[4]; vst1q_u32(temp, x); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_y(int lane) const { alignas(16) std::uint32_t temp[4]; vst1q_u32(temp, y); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_z(int lane) const { alignas(16) std::uint32_t temp[4]; vst1q_u32(temp, z); return temp[lane]; }
+    EAHCM_FORCE_INLINE std::uint32_t get_w(int lane) const { alignas(16) std::uint32_t temp[4]; vst1q_u32(temp, w); return temp[lane]; }
 };
 
 namespace neon {

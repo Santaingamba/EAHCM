@@ -133,3 +133,24 @@ TEST_CASE("Cipher: thread safety (independent instances)", "[cipher][threads]") 
         REQUIRE(results[t] == reference);
     }
 }
+
+TEST_CASE("Cipher: stream equivalence (generate(1) vs generate(N))", "[cipher]") {
+    auto key = make_key("stream-equiv-test");
+    auto nonce = make_nonce();
+
+    Cipher c1(key, nonce);
+    Cipher c2(key, nonce);
+
+    const size_t N = 1000;
+    
+    auto bulk = c2.generate(N);
+    
+    std::vector<std::uint8_t> piecemeal;
+    piecemeal.reserve(N);
+    for (size_t i = 0; i < N; ++i) {
+        auto b = c1.generate(1);
+        piecemeal.push_back(b[0]);
+    }
+    
+    REQUIRE(bulk == piecemeal);
+}

@@ -25,17 +25,31 @@ FetchContent_MakeAvailable(benchmark)
 add_executable(bench_scalar bench_scalar.cpp)
 target_link_libraries(bench_scalar PRIVATE benchmark::benchmark benchmark::benchmark_main EAHCM::eahcm OpenSSL::Crypto)
 
-add_executable(bench_simd bench_simd.cpp)
-target_link_libraries(bench_simd PRIVATE benchmark::benchmark benchmark::benchmark_main EAHCM::eahcm)
-if (MSVC)
-    target_compile_options(bench_simd PRIVATE /arch:AVX2)
-else()
-    target_compile_options(bench_simd PRIVATE -mavx2)
+if (EAHCM_ARCH_X86 OR EAHCM_ARCH_ARM64)
+    add_executable(bench_simd bench_simd.cpp)
+    target_link_libraries(bench_simd PRIVATE benchmark::benchmark benchmark::benchmark_main EAHCM::eahcm)
+    if (EAHCM_SIMD_FLAGS)
+        target_compile_options(bench_simd PRIVATE ${EAHCM_SIMD_FLAGS})
+    endif()
 endif()
 
-# Add custom run_benchmarks target for convenience
-add_custom_target(run_benchmarks
+add_custom_target(run_scalar_benchmarks
     COMMAND bench_scalar --benchmark_out=scalar_baseline.json --benchmark_out_format=json
     DEPENDS bench_scalar
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+if (TARGET bench_simd)
+    add_custom_target(run_simd_benchmarks
+        COMMAND bench_simd --benchmark_out=simd_baseline.json --benchmark_out_format=json
+        DEPENDS bench_simd
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    add_custom_target(run_benchmarks
+        DEPENDS run_scalar_benchmarks run_simd_benchmarks
+    )
+else()
+    add_custom_target(run_benchmarks
+        DEPENDS run_scalar_benchmarks
+    )
+endif()

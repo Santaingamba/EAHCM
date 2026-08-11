@@ -81,11 +81,21 @@ static void BM_Scalar_State_Extract(benchmark::State& state) {
     for (auto _ : state) {
         auto val = extract(s);
         benchmark::DoNotOptimize(val);
-        // We step to prevent the compiler from caching the extraction
-        step(s); 
+        // Avoid caching by modifying a dummy value
+        benchmark::ClobberMemory();
     }
 }
 BENCHMARK(BM_Scalar_State_Extract);
+
+static void BM_Scalar_State_Step_And_Extract(benchmark::State& state) {
+    State s = make_state(1, 2, 3, 4, 0x11111111, 0x22222222, 0x33333333, 0x44444444);
+    for (auto _ : state) {
+        auto val = extract(s);
+        benchmark::DoNotOptimize(val);
+        step(s); 
+    }
+}
+BENCHMARK(BM_Scalar_State_Step_And_Extract);
 
 // =========================================================================
 // Benchmark: Key Derivation
@@ -170,7 +180,9 @@ static void BM_Scalar_AEAD_Decrypt(benchmark::State& state) {
     auto ct_data = cipher.encrypt(cnonce, aad, pt);
 
     for (auto _ : state) {
+        state.PauseTiming();
         cipher.reset(); // Must reset state to decrypt identical ciphertext repeatedly
+        state.ResumeTiming();
         auto dec = cipher.decrypt(cnonce, aad, ct_data.ciphertext, ct_data.tag);
         benchmark::DoNotOptimize(dec);
     }
