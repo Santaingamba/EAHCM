@@ -14,7 +14,7 @@
 # │                                                                      │
 # │  tests/*          → EAHCM::eahcm + Catch2 + nlohmann_json           │
 # │  examples/*       → EAHCM::eahcm                                    │
-# │  benchmarks/*     → EAHCM::eahcm  (placeholder, no targets yet)     │
+# │  benchmarks/*     → EAHCM::eahcm + Google Benchmark                    │
 # └──────────────────────────────────────────────────────────────────────┘
 #
 # Header-only components (compiled into consumers, NOT into libeahcm):
@@ -74,15 +74,15 @@ endif()
 set(EAHCM_ARCH_X86 OFF)
 set(EAHCM_ARCH_ARM64 OFF)
 
-# Check both target processor and host processor
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i386|i686)$" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i386|i686)$")
+# Check target processor for architecture decisions
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i386|i686)$")
     set(EAHCM_ARCH_X86 ON)
     if (MSVC)
         set(EAHCM_SIMD_FLAGS "/arch:AVX2")
     else()
         set(EAHCM_SIMD_FLAGS "-mavx2")
     endif()
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|ARM64|arm64)$" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(aarch64|ARM64|arm64)$")
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|ARM64|arm64)$")
     set(EAHCM_ARCH_ARM64 ON)
     # NEON is typically default on ARM64, no special compiler flag needed for basic intrinsics
     set(EAHCM_SIMD_FLAGS "")

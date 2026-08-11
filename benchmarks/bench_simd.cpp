@@ -33,7 +33,28 @@ std::array<State, N> generate_random_states(std::uint32_t seed) {
 
 #if defined(__AVX2__)
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
+static bool cpu_supports_avx2() {
+#if defined(_MSC_VER)
+    int cpuInfo[4];
+    __cpuidex(cpuInfo, 7, 0);
+    return (cpuInfo[1] & (1 << 5)) != 0;
+#elif defined(__GNUC__) || defined(__clang__)
+    __builtin_cpu_init();
+    return __builtin_cpu_supports("avx2") > 0;
+#else
+    return true;
+#endif
+}
+
 static void BM_SIMD_AVX2_L(benchmark::State& state) {
+    if (!cpu_supports_avx2()) {
+        state.SkipWithError("CPU does not support AVX2");
+        return;
+    }
     __m256i v = _mm256_set1_epi32(0x12345678);
     __m256i p = _mm256_set1_epi32(0x9ABCDEF0);
     for (auto _ : state) {
@@ -46,6 +67,10 @@ static void BM_SIMD_AVX2_L(benchmark::State& state) {
 BENCHMARK(BM_SIMD_AVX2_L);
 
 static void BM_SIMD_AVX2_Step(benchmark::State& state) {
+    if (!cpu_supports_avx2()) {
+        state.SkipWithError("CPU does not support AVX2");
+        return;
+    }
     auto scalar_states = generate_random_states<8>(42);
     auto vs = detail::simd::avx2::load_states(scalar_states.data());
     

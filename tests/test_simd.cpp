@@ -56,7 +56,24 @@ void require_states_match(const std::array<State, N>& expected, const std::array
 
 #if defined(__AVX2__)
 
-TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") {
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
+static bool cpu_supports_avx2() {
+#if defined(_MSC_VER)
+    int cpuInfo[4];
+    __cpuidex(cpuInfo, 7, 0);
+    return (cpuInfo[1] & (1 << 5)) != 0;
+#elif defined(__GNUC__) || defined(__clang__)
+    __builtin_cpu_init();
+    return __builtin_cpu_supports("avx2") > 0;
+#else
+    return true;
+#endif
+}
+
+TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(1337);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -82,7 +99,7 @@ TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") {
     }
 }
 
-TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") {
+TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(42);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -104,7 +121,7 @@ TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") {
     }
 }
 
-TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") {
+TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(101);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -122,7 +139,7 @@ TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") {
     }
 }
 
-TEST_CASE("AVX2 State Evolution exact equivalence", "[simd][avx2]") {
+TEST_CASE("AVX2 State Evolution exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     auto seeds = {1u, 42u, 1337u, 0xDEADBEEFu};
     for (auto seed : seeds) {
         auto scalar_states = generate_random_states<8>(seed);
@@ -272,3 +289,5 @@ TEST_CASE("NEON State Evolution exact equivalence", "[simd][neon]") {
 }
 
 #endif // __ARM_NEON
+
+

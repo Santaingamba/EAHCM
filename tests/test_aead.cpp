@@ -53,22 +53,6 @@ static std::vector<std::uint8_t> make_bytes(std::size_t count, std::uint8_t fill
     return std::vector<std::uint8_t>(count, fill);
 }
 
-/// Convert a hex string to bytes.
-static std::vector<std::uint8_t> from_hex(const char* hex) {
-    std::vector<std::uint8_t> out;
-    const std::size_t len = std::strlen(hex);
-    out.reserve(len / 2);
-    for (std::size_t i = 0; i + 1 < len; i += 2) {
-        const auto nibble = [](char c) -> std::uint8_t {
-            if (c >= '0' && c <= '9') return static_cast<std::uint8_t>(c - '0');
-            if (c >= 'a' && c <= 'f') return static_cast<std::uint8_t>(c - 'a' + 10);
-            if (c >= 'A' && c <= 'F') return static_cast<std::uint8_t>(c - 'A' + 10);
-            return 0;
-        };
-        out.push_back(static_cast<std::uint8_t>((nibble(hex[i]) << 4) | nibble(hex[i + 1])));
-    }
-    return out;
-}
 
 /// Canonical test key (32 bytes, 0xAB repeated).
 static std::vector<std::uint8_t> test_key()    { return make_bytes(32, 0xAB); }

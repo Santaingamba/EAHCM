@@ -12,7 +12,6 @@
 #define EAHCM_SIMD_VECTOR_STATE_HPP
 
 #include <cstdint>
-#include <array>
 #include "eahcm/state.hpp"
 
 namespace eahcm {
