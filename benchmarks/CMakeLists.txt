@@ -37,14 +37,14 @@ elseif (EAHCM_ARCH_ARM64)
 endif()
 
 add_custom_target(run_scalar_benchmarks
-    COMMAND bench_scalar --benchmark_out=scalar_baseline.json --benchmark_out_format=json
+    COMMAND $<TARGET_FILE:bench_scalar> --benchmark_out=scalar_baseline.json --benchmark_out_format=json
     DEPENDS bench_scalar
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if (TARGET bench_simd)
     add_custom_target(run_simd_benchmarks
-        COMMAND bench_simd --benchmark_out=simd_baseline.json --benchmark_out_format=json
+        COMMAND $<TARGET_FILE:bench_simd> --benchmark_out=simd_baseline.json --benchmark_out_format=json
         DEPENDS bench_simd
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
