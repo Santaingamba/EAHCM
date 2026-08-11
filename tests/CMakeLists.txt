@@ -51,6 +51,16 @@ target_compile_definitions(test_key_schedule PRIVATE
 )
 add_test(NAME test_key_schedule COMMAND test_key_schedule)
 
+# ---- Test: SIMD Equivalence (Stage 4) ----
+add_executable(test_simd test_simd.cpp)
+target_link_libraries(test_simd PRIVATE EAHCM::eahcm Catch2::Catch2WithMain)
+if (MSVC)
+    target_compile_options(test_simd PRIVATE /arch:AVX2)
+else()
+    target_compile_options(test_simd PRIVATE -mavx2)
+endif()
+add_test(NAME test_simd COMMAND test_simd)
+
 # ---- Test: Serialization ----
 add_executable(test_serialization test_serialization.cpp)
 target_link_libraries(test_serialization PRIVATE EAHCM::eahcm Catch2::Catch2WithMain)
