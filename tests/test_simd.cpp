@@ -8,14 +8,16 @@
 
 #include "eahcm/arithmetic.hpp"
 #include "eahcm/state.hpp"
-#include "eahcm/detail/simd/vector_state.hpp"
+#include "eahcm/detail/simd/detect.hpp"
 
-#if defined(__AVX2__)
-#include "eahcm/detail/simd/avx2.hpp"
+#if defined(__AVX2__) || defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+#define EAHCM_HAS_AVX2_TESTS
+#include "test_simd_avx2.hpp"
 #endif
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-#include "eahcm/detail/simd/neon.hpp"
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_NEON) || defined(__ARM_NEON__)
+#define EAHCM_HAS_NEON_TESTS
+#include "test_simd_neon.hpp"
 #endif
 
 #include <vector>
@@ -54,26 +56,10 @@ void require_states_match(const std::array<State, N>& expected, const std::array
     }
 }
 
-#if defined(__AVX2__)
+#if defined(EAHCM_HAS_AVX2_TESTS)
 
-#if defined(_MSC_VER)
-#include <intrin.h>
-#endif
-
-static bool cpu_supports_avx2() {
-#if defined(_MSC_VER)
-    int cpuInfo[4];
-    __cpuidex(cpuInfo, 7, 0);
-    return (cpuInfo[1] & (1 << 5)) != 0;
-#elif defined(__GNUC__) || defined(__clang__)
-    __builtin_cpu_init();
-    return __builtin_cpu_supports("avx2") > 0;
-#else
-    return true;
-#endif
-}
-
-TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
+TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") {
+    if (!eahcm::detail::simd::cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(1337);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -89,17 +75,15 @@ TEST_CASE("AVX2 L() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2
     p[3] = 0x00000000;
     p[4] = 0xFFFFFFFF;
 
-    __m256i vec_v = _mm256_load_si256((__m256i*)v);
-    __m256i vec_p = _mm256_load_si256((__m256i*)p);
-    __m256i vec_out = detail::simd::avx2::L_vec(vec_v, vec_p);
-    _mm256_store_si256((__m256i*)out, vec_out);
+    avx2_L_vec_compute(v, p, out);
 
     for (int i = 0; i < 8; ++i) {
         REQUIRE(out[i] == eahcm::L(v[i], p[i]));
     }
 }
 
-TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
+TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") {
+    if (!eahcm::detail::simd::cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(42);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -112,16 +96,15 @@ TEST_CASE("AVX2 F() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2
     v[1] = 0x80000000;
     v[2] = 0xFFFFFFFF;
 
-    __m256i vec_v = _mm256_load_si256((__m256i*)v);
-    __m256i vec_out = detail::simd::avx2::F_vec(vec_v);
-    _mm256_store_si256((__m256i*)out, vec_out);
+    avx2_F_vec_compute(v, out);
 
     for (int i = 0; i < 8; ++i) {
         REQUIRE(out[i] == eahcm::F(v[i]));
     }
 }
 
-TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
+TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") {
+    if (!eahcm::detail::simd::cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     std::mt19937 gen(101);
     std::uniform_int_distribution<std::uint32_t> dist;
 
@@ -130,16 +113,15 @@ TEST_CASE("AVX2 R() exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2
         w[i] = dist(gen);
     }
     
-    __m256i vec_w = _mm256_load_si256((__m256i*)w);
-    __m256i vec_out = detail::simd::avx2::R_vec(vec_w);
-    _mm256_store_si256((__m256i*)out, vec_out);
+    avx2_R_vec_compute(w, out);
 
     for (int i = 0; i < 8; ++i) {
         REQUIRE(out[i] == eahcm::R(w[i]));
     }
 }
 
-TEST_CASE("AVX2 State Evolution exact equivalence", "[simd][avx2]") { if (!cpu_supports_avx2()) SKIP("CPU does not support AVX2");
+TEST_CASE("AVX2 State Evolution exact equivalence", "[simd][avx2]") {
+    if (!eahcm::detail::simd::cpu_supports_avx2()) SKIP("CPU does not support AVX2");
     auto seeds = {1u, 42u, 1337u, 0xDEADBEEFu};
     for (auto seed : seeds) {
         auto scalar_states = generate_random_states<8>(seed);
@@ -151,42 +133,42 @@ TEST_CASE("AVX2 State Evolution exact equivalence", "[simd][avx2]") { if (!cpu_s
         scalar_states[3].counter = 0xFFFFFFFE; // Wraparound approaching
         scalar_states[4].counter = 0xFFFFFFFF; // Wraparound
         
-        auto vec_state = detail::simd::avx2::load_states(scalar_states.data());
         std::array<State, 8> out_states;
-        
         std::vector<int> checkpoints = {1, 64, 65, 128, 256};
         int current_step = 0;
 
         for (int target : checkpoints) {
-            while (current_step < target) {
-                for (int i = 0; i < 8; ++i) eahcm::step(scalar_states[i]);
-                detail::simd::avx2::step_vec(vec_state);
-                current_step++;
+            int step_diff = target - current_step;
+            
+            // Advance SIMD state
+            avx2_step_vec_compute(scalar_states.data(), out_states.data(), step_diff);
+            
+            // Advance scalar states manually
+            for (int i = 0; i < step_diff; ++i) {
+                for (int s = 0; s < 8; ++s) eahcm::step(scalar_states[s]);
             }
-            detail::simd::avx2::store_states(out_states.data(), vec_state);
+            
+            current_step = target;
             require_states_match(scalar_states, out_states, seed, current_step);
+            
+            // Re-sync states for next chunk
+            scalar_states = out_states;
         }
         
         // Test extraction
-        __m256i out_lo_4, out_hi_4;
-        detail::simd::avx2::extract_vec(vec_state, out_lo_4, out_hi_4);
-        alignas(32) std::uint64_t v_lo[4], v_hi[4];
-        _mm256_store_si256((__m256i*)v_lo, out_lo_4);
-        _mm256_store_si256((__m256i*)v_hi, out_hi_4);
+        std::uint64_t vec_extracts[8];
+        avx2_extract_vec_compute(scalar_states.data(), vec_extracts);
         
-        std::uint64_t vec_extracts[8] = {
-            v_lo[0], v_lo[1], v_lo[2], v_lo[3],
-            v_hi[0], v_hi[1], v_hi[2], v_hi[3]
-        };
         for (int i = 0; i < 8; ++i) {
             REQUIRE(vec_extracts[i] == eahcm::extract(scalar_states[i]));
         }
     }
 }
 
-#endif // __AVX2__
+#endif // EAHCM_HAS_AVX2_TESTS
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+
+#if defined(EAHCM_HAS_NEON_TESTS)
 
 TEST_CASE("NEON L() exact equivalence", "[simd][neon]") {
     std::mt19937 gen(1337);
@@ -202,10 +184,7 @@ TEST_CASE("NEON L() exact equivalence", "[simd][neon]") {
     v[2] = 0x80000000;
     p[3] = 0x00000000;
 
-    uint32x4_t vec_v = vld1q_u32(v);
-    uint32x4_t vec_p = vld1q_u32(p);
-    uint32x4_t vec_out = detail::simd::neon::L_vec(vec_v, vec_p);
-    vst1q_u32(out, vec_out);
+    neon_L_vec_compute(v, p, out);
 
     for (int i = 0; i < 4; ++i) REQUIRE(out[i] == eahcm::L(v[i], p[i]));
 }
@@ -222,9 +201,7 @@ TEST_CASE("NEON F() exact equivalence", "[simd][neon]") {
     v[1] = 0x80000000;
     v[2] = 0xFFFFFFFF;
 
-    uint32x4_t vec_v = vld1q_u32(v);
-    uint32x4_t vec_out = detail::simd::neon::F_vec(vec_v);
-    vst1q_u32(out, vec_out);
+    neon_F_vec_compute(v, out);
 
     for (int i = 0; i < 4; ++i) REQUIRE(out[i] == eahcm::F(v[i]));
 }
@@ -238,9 +215,7 @@ TEST_CASE("NEON R() exact equivalence", "[simd][neon]") {
         w[i] = dist(gen);
     }
     
-    uint32x4_t vec_w = vld1q_u32(w);
-    uint32x4_t vec_out = detail::simd::neon::R_vec(vec_w);
-    vst1q_u32(out, vec_out);
+    neon_R_vec_compute(w, out);
 
     for (int i = 0; i < 4; ++i) REQUIRE(out[i] == eahcm::R(w[i]));
 }
@@ -255,39 +230,32 @@ TEST_CASE("NEON State Evolution exact equivalence", "[simd][neon]") {
         scalar_states[2].counter = 0xFFFFFFFE; // Wraparound
         scalar_states[3].counter = 0xFFFFFFFF; // Wraparound
         
-        auto vec_state = detail::simd::neon::load_states(scalar_states.data());
         std::array<State, 4> out_states;
-        
         std::vector<int> checkpoints = {1, 64, 65, 128, 256};
         int current_step = 0;
 
         for (int target : checkpoints) {
-            while (current_step < target) {
-                for (int i = 0; i < 4; ++i) eahcm::step(scalar_states[i]);
-                detail::simd::neon::step_vec(vec_state);
-                current_step++;
+            int step_diff = target - current_step;
+            neon_step_vec_compute(scalar_states.data(), out_states.data(), step_diff);
+            
+            for (int i = 0; i < step_diff; ++i) {
+                for (int s = 0; s < 4; ++s) eahcm::step(scalar_states[s]);
             }
-            detail::simd::neon::store_states(out_states.data(), vec_state);
+            
+            current_step = target;
             require_states_match(scalar_states, out_states, seed, current_step);
+            
+            scalar_states = out_states;
         }
         
         // Test extraction
-        uint32x4_t out_lo_2, out_hi_2;
-        detail::simd::neon::extract_vec(vec_state, out_lo_2, out_hi_2);
-        alignas(16) std::uint64_t v_lo[2], v_hi[2];
-        vst1q_u64((uint64_t*)v_lo, vreinterpretq_u64_u32(out_lo_2));
-        vst1q_u64((uint64_t*)v_hi, vreinterpretq_u64_u32(out_hi_2));
+        std::uint64_t vec_extracts[4];
+        neon_extract_vec_compute(scalar_states.data(), vec_extracts);
         
-        std::uint64_t vec_extracts[4] = {
-            v_lo[0], v_lo[1],
-            v_hi[0], v_hi[1]
-        };
         for (int i = 0; i < 4; ++i) {
             REQUIRE(vec_extracts[i] == eahcm::extract(scalar_states[i]));
         }
     }
 }
 
-#endif // __ARM_NEON
-
-
+#endif // EAHCM_HAS_NEON_TESTS

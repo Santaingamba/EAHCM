@@ -108,6 +108,7 @@ set(EAHCM_SOURCES
     src/serialization.cpp
     src/aead.cpp                   # Stage 2: ChaCha20-Poly1305 AEAD
     src/c_api.cpp                  # Stage 3: C API Layer
+    src/simd_detect.cpp            # Stage 4: SIMD detection
 )
 
 if(EAHCM_BUILD_SHARED)

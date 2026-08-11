@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # benchmarks/CMakeLists.txt — EAHCM performance benchmarks.
 #
-# Placeholder for future throughput and latency benchmarks.
+# Links against EAHCM::eahcm and Google Benchmark.
 #
 # Enabled when: EAHCM_BUILD_BENCHMARKS=ON (default: OFF)
 #
@@ -25,12 +25,15 @@ FetchContent_MakeAvailable(benchmark)
 add_executable(bench_scalar bench_scalar.cpp)
 target_link_libraries(bench_scalar PRIVATE benchmark::benchmark benchmark::benchmark_main EAHCM::eahcm OpenSSL::Crypto)
 
-if (EAHCM_ARCH_X86 OR EAHCM_ARCH_ARM64)
-    add_executable(bench_simd bench_simd.cpp)
-    target_link_libraries(bench_simd PRIVATE benchmark::benchmark benchmark::benchmark_main EAHCM::eahcm)
+if (EAHCM_ARCH_X86)
+    add_executable(bench_simd bench_simd.cpp bench_simd_avx2.cpp)
+    target_link_libraries(bench_simd PRIVATE benchmark::benchmark EAHCM::eahcm)
     if (EAHCM_SIMD_FLAGS)
-        target_compile_options(bench_simd PRIVATE ${EAHCM_SIMD_FLAGS})
+        set_source_files_properties(bench_simd_avx2.cpp PROPERTIES COMPILE_OPTIONS "${EAHCM_SIMD_FLAGS}")
     endif()
+elseif (EAHCM_ARCH_ARM64)
+    add_executable(bench_simd bench_simd.cpp bench_simd_neon.cpp)
+    target_link_libraries(bench_simd PRIVATE benchmark::benchmark EAHCM::eahcm)
 endif()
 
 add_custom_target(run_scalar_benchmarks
